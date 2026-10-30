@@ -1,3 +1,4 @@
+import re
 import json
 import uuid
 import random
@@ -223,48 +224,74 @@ Return ONLY valid JSON matching this schema:
         clean_text = (transcript or "").strip()
 
         # ------------------------------------------------------------------
-        # 1. IMMEDIATE INTENT GATE: Check if candidate requested DSA / Live Coding
-        # (Must be checked BEFORE LLM call to guarantee the interviewer and right panel sync!)
+        # 1. COMMAND & DIRECTIVE PARSER (Meta-Control / Interview Steering)
+        # Formats: COMMAND: <order>, CMD: <order>, /<order>, or natural phrases
         # ------------------------------------------------------------------
-        coding_requests = [
-            "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
-            "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
-            "move to coding", "switch to coding", "let's code", "lets code",
-            "coding question", "coding problem", "leetcode problem", "live coding",
-            "showcase my coding", "solve a coding problem", "give me a coding question"
-        ]
-        wants_coding = any(k in clean_text.lower() for k in coding_requests)
+        clean_lower = clean_text.lower()
+        is_explicit_cmd = clean_lower.startswith(("command:", "command ", "cmd:", "cmd ", "/", "directive:"))
+        cmd_payload = re.sub(r'^(command|cmd|directive|/)\s*[:\-]?\s*', '', clean_lower).strip() if is_explicit_cmd else clean_lower
+
+        # A. DSA / Live Coding Command & Natural Trigger
+        is_dsa_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["dsa", "coding", "code", "leetcode", "problem solving", "algorithm"]))
+            or "dsa" in clean_lower
+            or "leetcode" in clean_lower
+            or any(k in clean_lower for k in [
+                "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
+                "let's move on to dsa", "lets move on to dsa", "let's move to dsa", "lets move to dsa",
+                "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
+                "move to coding", "switch to coding", "let's code", "lets code",
+                "coding question", "coding problem", "leetcode problem", "live coding",
+                "showcase my coding", "solve a coding problem", "give me a coding question"
+            ])
+        )
 
         # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
-        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        is_code_submission = "here is my live dsa solution" in clean_lower or "class solution" in clean_text or "var twosum" in clean_text
         if is_code_submission:
             return self._evaluate_dsa_code_submission(clean_text, session, None)
 
-        if wants_coding:
+        if is_dsa_command:
             return self._build_dsa_challenge(transcript)
 
-        sys_design_triggers = [
-            "move on to system design", "move to system design", "switch to system design",
-            "let's do system design", "lets do system design", "ask system design",
-            "ask me system design", "system design question", "system design round",
-            "start system design", "pivot to system design"
-        ]
-        wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
-
-        if wants_sys_design:
+        # B. System Design Command
+        is_sys_design_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["system design", "sysdesign", "architecture", "distributed"]))
+            or any(k in clean_lower for k in [
+                "move on to system design", "move to system design", "switch to system design",
+                "let's do system design", "lets do system design", "ask system design",
+                "ask me system design", "system design question", "system design round",
+                "start system design", "pivot to system design"
+            ])
+        )
+        if is_sys_design_command:
             return self._build_system_design_challenge(transcript)
 
-        # Deflection and gibberish detection
+        # C. Next Question / Skip Topic Command
+        is_next_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["next", "skip", "pass", "change topic", "different topic", "new question"]))
+            or clean_lower in ["next", "skip", "next question", "skip question", "next topic", "change topic"]
+        )
+        if is_next_command:
+            return self._build_next_topic_transition(session, transcript)
+
+        # Deflection and gibberish detection (NEVER flag commands or DSA/System Design as gibberish!)
         deflections = [
             "you just ask", "ask something else", "change the question", "different topic",
             "skip this", "next question", "don't ask", "i don't know", "i dont know",
             "no idea", "dont know", "skip"
         ]
-        is_deflection = any(d in clean_text.lower() for d in deflections)
+        is_deflection = any(d in clean_lower for d in deflections)
         word_count = len(clean_text.split())
-        tech_indicators = ["cache", "redis", "database", "sql", "async", "scale", "worker", "thread", "api", "index", "latency", "load", "model", "python", "service", "concurrency", "docker", "query", "optimize", "kafka", "postgres", "lock", "nosql", "http", "memory", "sharding", "cpu", "queue", "git", "rest", "frontend", "backend"]
-        has_tech = any(k in clean_text.lower() for k in tech_indicators)
-        is_gibberish_or_trivial = (word_count < 5 and not has_tech) or (word_count < 3)
+        tech_indicators = ["cache", "redis", "database", "sql", "async", "scale", "worker", "thread", "api", "index", "latency", "load", "model", "python", "service", "concurrency", "docker", "query", "optimize", "kafka", "postgres", "lock", "nosql", "http", "memory", "sharding", "cpu", "queue", "git", "rest", "frontend", "backend", "dsa", "leetcode"]
+        has_tech = any(k in clean_lower for k in tech_indicators)
+        is_gibberish_or_trivial = (
+            not is_explicit_cmd
+            and not is_dsa_command
+            and not is_sys_design_command
+            and not is_next_command
+            and ((word_count < 5 and not has_tech) or (word_count < 3))
+        )
 
         last_question = session.current_question
         persona_instructions = self._get_persona_instructions(session.config.persona)
@@ -674,6 +701,39 @@ class Solution:
         }
     ]
 
+    def _build_next_topic_transition(self, session: InterviewSession, transcript: str) -> SubmitAnswerResponse:
+        is_hindi = session.config.language == InterviewLanguage.HI
+        asked_texts = {session.current_question.question_text.strip().lower()}
+        for t in session.conversation_history:
+            if t.question and t.question.question_text:
+                asked_texts.add(t.question.question_text.strip().lower())
+        
+        q_text, category = self._get_unique_next_question(asked_texts, is_hindi)
+        reaction = "Theek hai, aage badhte hain agle technical topic par:" if is_hindi else "Understood! Moving smoothly to our next engineering domain:"
+        
+        return SubmitAnswerResponse(
+            feedback=AnswerFeedback(
+                score=7,
+                strengths=["Smooth interview pacing and prompt domain transition"],
+                improvements=["Demonstrate technical depth on the incoming topic"],
+                persona_reaction=reaction,
+                speech_metrics=analyze_speech_delivery(transcript)
+            ),
+            persona_reaction=reaction,
+            spoken_reaction=reaction,
+            next_question=InterviewQuestion(
+                question_text=q_text,
+                voice_text=f"{reaction} {q_text}",
+                difficulty="hard",
+                category=category,
+                is_cross_question=True,
+                context_reference="Candidate requested next topic transition",
+                visual_context=None
+            ),
+            learning_concept=None,
+            is_complete=False
+        )
+
     def _build_system_design_challenge(self, transcript: str) -> SubmitAnswerResponse:
         """
         Pivots to System Design purely in chat without confusing diagrams in the right panel.
@@ -712,34 +772,49 @@ class Solution:
         clean_text = (transcript or "").strip()
         word_count = len(clean_text.split())
 
-        # Intent detection: Check if candidate requested DSA / Live Coding
-        coding_requests = [
-            "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
-            "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
-            "move to coding", "switch to coding", "let's code", "lets code",
-            "coding question", "coding problem", "leetcode problem", "live coding",
-            "showcase my coding", "solve a coding problem", "give me a coding question"
-        ]
-        wants_coding = any(k in clean_text.lower() for k in coding_requests)
+        clean_lower = clean_text.lower()
+        is_explicit_cmd = clean_lower.startswith(("command:", "command ", "cmd:", "cmd ", "/", "directive:"))
+        cmd_payload = re.sub(r'^(command|cmd|directive|/)\s*[:\-]?\s*', '', clean_lower).strip() if is_explicit_cmd else clean_lower
 
-        # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
-        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        is_dsa_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["dsa", "coding", "code", "leetcode", "problem solving", "algorithm"]))
+            or "dsa" in clean_lower
+            or "leetcode" in clean_lower
+            or any(k in clean_lower for k in [
+                "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
+                "let's move on to dsa", "lets move on to dsa", "let's move to dsa", "lets move to dsa",
+                "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
+                "move to coding", "switch to coding", "let's code", "lets code",
+                "coding question", "coding problem", "leetcode problem", "live coding",
+                "showcase my coding", "solve a coding problem", "give me a coding question"
+            ])
+        )
+
+        is_code_submission = "here is my live dsa solution" in clean_lower or "class solution" in clean_text or "var twosum" in clean_text
         if is_code_submission:
             return self._evaluate_dsa_code_submission(clean_text, session, None)
 
-        if wants_coding:
+        if is_dsa_command:
             return self._build_dsa_challenge(transcript)
 
-        sys_design_triggers = [
-            "move on to system design", "move to system design", "switch to system design",
-            "let's do system design", "lets do system design", "ask system design",
-            "ask me system design", "system design question", "system design round",
-            "start system design", "pivot to system design"
-        ]
-        wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
-
-        if wants_sys_design:
+        is_sys_design_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["system design", "sysdesign", "architecture", "distributed"]))
+            or any(k in clean_lower for k in [
+                "move on to system design", "move to system design", "switch to system design",
+                "let's do system design", "lets do system design", "ask system design",
+                "ask me system design", "system design question", "system design round",
+                "start system design", "pivot to system design"
+            ])
+        )
+        if is_sys_design_command:
             return self._build_system_design_challenge(transcript)
+
+        is_next_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["next", "skip", "pass", "change topic", "different topic", "new question"]))
+            or clean_lower in ["next", "skip", "next question", "skip question", "next topic", "change topic"]
+        )
+        if is_next_command:
+            return self._build_next_topic_transition(session, transcript)
 
         deflections = [
             "you just ask", "ask something else", "change the question", "different topic",

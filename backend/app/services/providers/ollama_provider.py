@@ -1,3 +1,4 @@
+import re
 import json
 import uuid
 import httpx
@@ -171,59 +172,51 @@ Return ONLY valid JSON matching this schema:
         clean_text = (transcript or "").strip()
 
         # ------------------------------------------------------------------
-        # 1. DSA / Live Coding Sandbox Intent Detection
+        # 1. COMMAND & DIRECTIVE PARSER (Meta-Control / Interview Steering)
         # ------------------------------------------------------------------
-        coding_requests = [
-            "data structure", "algorithm", "dsa", "coding", "code", "leetcode",
-            "problem solving", "showcase my coding", "write code", "sandbox", "editor",
-            "move on to the dsa", "switch to coding", "coding question"
-        ]
-        wants_coding = any(k in clean_text.lower() for k in coding_requests)
+        clean_lower = clean_text.lower()
+        is_explicit_cmd = clean_lower.startswith(("command:", "command ", "cmd:", "cmd ", "/", "directive:"))
+        cmd_payload = re.sub(r'^(command|cmd|directive|/)\s*[:\-]?\s*', '', clean_lower).strip() if is_explicit_cmd else clean_lower
 
-        # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
-        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        is_dsa_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["dsa", "coding", "code", "leetcode", "problem solving", "algorithm"]))
+            or "dsa" in clean_lower
+            or "leetcode" in clean_lower
+            or any(k in clean_lower for k in [
+                "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
+                "let's move on to dsa", "lets move on to dsa", "let's move to dsa", "lets move to dsa",
+                "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
+                "move to coding", "switch to coding", "let's code", "lets code",
+                "coding question", "coding problem", "leetcode problem", "live coding",
+                "showcase my coding", "solve a coding problem", "give me a coding question"
+            ])
+        )
+
+        is_code_submission = "here is my live dsa solution" in clean_lower or "class solution" in clean_text or "var twosum" in clean_text
         if is_code_submission:
             return self.fallback_provider._evaluate_dsa_code_submission(clean_text, session, resume)
 
-        if wants_coding:
+        if is_dsa_command:
             return self.fallback_provider._build_dsa_challenge(transcript)
 
-        # ------------------------------------------------------------------
-        # 2. System Design Intent Detection (Pure Verbal - No Cluttered Right Panel)
-        # ------------------------------------------------------------------
-        sys_design_triggers = [
-            "move on to system design", "move to system design", "switch to system design",
-            "let's do system design", "lets do system design", "ask system design",
-            "ask me system design", "system design question", "system design round",
-            "start system design", "pivot to system design"
-        ]
-        wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
+        is_sys_design_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["system design", "sysdesign", "architecture", "distributed"]))
+            or any(k in clean_lower for k in [
+                "move on to system design", "move to system design", "switch to system design",
+                "let's do system design", "lets do system design", "ask system design",
+                "ask me system design", "system design question", "system design round",
+                "start system design", "pivot to system design"
+            ])
+        )
+        if is_sys_design_command:
+            return self.fallback_provider._build_system_design_challenge(transcript)
 
-        if wants_sys_design:
-            q_text = "Now let's move to System Design. How would you design a high-throughput flash-sale ticket reservation system handling 50,000 concurrent writes per second without database lock contention or double-booking seats?"
-            reaction = "Now let's test your high-level engineering. Switching to distributed system design:"
-            return SubmitAnswerResponse(
-                feedback=AnswerFeedback(
-                    score=8,
-                    strengths=["Strong architectural aptitude"],
-                    improvements=["Prepare to quantify throughput bottlenecks"],
-                    persona_reaction=reaction,
-                    speech_metrics=analyze_speech_delivery(transcript)
-                ),
-                persona_reaction=reaction,
-                spoken_reaction=reaction,
-                next_question=InterviewQuestion(
-                    question_text=q_text,
-                    voice_text=f"{reaction} {q_text}",
-                    difficulty="hard",
-                    category="System Design & Architecture",
-                    is_cross_question=True,
-                    context_reference="System Design Assessment",
-                    visual_context=None  # Right panel is kept clean for Take a Hint!
-                ),
-                learning_concept=None,
-                is_complete=False
-            )
+        is_next_command = (
+            (is_explicit_cmd and any(k in cmd_payload for k in ["next", "skip", "pass", "change topic", "different topic", "new question"]))
+            or clean_lower in ["next", "skip", "next question", "skip question", "next topic", "change topic"]
+        )
+        if is_next_command:
+            return self.fallback_provider._build_next_topic_transition(session, transcript)
 
         # ------------------------------------------------------------------
         # 3. Deflection / Careless Evasion / Gibberish Detection
