@@ -1,0 +1,284 @@
+# =============================================================================
+# AWS SAM Template for ResumeGrind
+# =============================================================================
+# WHY SAM (Serverless Application Model)?
+# SAM is AWS's official framework for defining serverless applications as code.
+# It extends CloudFormation with simplified syntax for Lambda, API Gateway, etc.
+# With ONE command (`sam deploy`), this file creates your entire cloud stack.
+# This is "Infrastructure as Code" — a critical skill recruiters look for.
+# =============================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  ResumeGrind - AI Voice Mock Interviewer with Live Code Inspector.
+  Serverless backend powered by FastAPI on Lambda, with S3 for storage,
+  DynamoDB for session data, and CloudFront for frontend delivery.
+
+# =============================================================================
+# PARAMETERS
+# WHY: Parameters let you customize the stack at deploy time without editing
+# the template. This is how production teams manage dev/staging/prod environments.
+# =============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment environment
+
+  GeminiApiKey:
+    Type: String
+    NoEcho: true  # WHY: NoEcho hides the value in CloudFormation console (security)
+    Description: Google Gemini API key for AI question generation
+
+# =============================================================================
+# GLOBALS
+# WHY: Globals apply default settings to ALL Lambda functions in this template.
+# This avoids repeating the same config for each function.
+# =============================================================================
+Globals:
+  Function:
+    Timeout: 120          # WHY: Link inspection can take time (crawling GitHub repos)
+    MemorySize: 512       # WHY: 512MB gives good balance of speed and free tier usage
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        S3_BUCKET_NAME: !Ref ResumeBucket
+        DYNAMODB_TABLE_NAME: !Ref SessionsTable
+        GEMINI_API_KEY: !Ref GeminiApiKey
+
+Resources:
+
+  # ===========================================================================
+  # S3 BUCKET - Resume Storage
+  # WHY S3? Industry-standard object storage. Resumes are uploaded directly
+  # from the browser using presigned URLs, so files never touch our Lambda.
+  # This pattern scales to millions of uploads without increasing server load.
+  # ===========================================================================
+  ResumeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'resumegrind-resumes-${Environment}-${AWS::AccountId}'
+      # WHY Sub + AccountId? Bucket names must be globally unique. Including
+      # the AWS account ID guarantees uniqueness across all AWS accounts.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: ['*']  # WHY: Allows browser to upload directly to S3
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDeleteOldResumes
+            Status: Enabled
+            ExpirationInDays: 30
+            # WHY: Auto-delete resumes after 30 days to stay within free tier
+            # storage limits and respect candidate privacy.
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+        # WHY: Block ALL public access. Files are only accessible via
+        # presigned URLs (time-limited, authenticated). This is a security
+        # best practice that interviewers will specifically ask about.
+
+  # ===========================================================================
+  # S3 BUCKET - Frontend Static Hosting
+  # WHY: Hosting a React SPA on S3 + CloudFront is the industry standard.
+  # No server to manage, global CDN delivery, essentially free.
+  # ===========================================================================
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'resumegrind-frontend-${Environment}-${AWS::AccountId}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html  # WHY: SPA routing — all paths serve index.html
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontAccess
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # ===========================================================================
+  # CLOUDFRONT DISTRIBUTION
+  # WHY CloudFront? It's a CDN (Content Delivery Network) that caches your
+  # React app at edge locations worldwide. A user in India gets the app served
+  # from a Mumbai edge server instead of a US-based S3 bucket = faster loads.
+  # ===========================================================================
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          # Origin 1: Frontend static files from S3
+          - Id: FrontendS3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+          # Origin 2: Backend API via API Gateway
+          - Id: BackendApiOrigin
+            DomainName: !Sub '${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
+            CustomOriginConfig:
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
+          Compress: true
+        CacheBehaviors:
+          # WHY: Route /api/* requests to the backend Lambda, not to S3
+          - PathPattern: /api/*
+            TargetOriginId: BackendApiOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # CachingDisabled
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac  # AllViewerExceptHostHeader
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+        # Handle SPA client-side routing
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'resumegrind-oac-${Environment}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ===========================================================================
+  # DYNAMODB TABLE - Session Storage
+  # WHY DynamoDB? Serverless NoSQL database that scales automatically.
+  # Perfect for storing interview sessions because:
+  # 1. No server to manage (unlike PostgreSQL/MySQL)
+  # 2. Free tier: 25GB storage + 25 read/write capacity units
+  # 3. Single-digit millisecond latency
+  # 4. Pay-per-request pricing (PAY_PER_REQUEST) = zero cost when idle
+  # ===========================================================================
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'resumegrind-sessions-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      # WHY PAY_PER_REQUEST? For a portfolio project with sporadic traffic,
+      # this is far cheaper than provisioned capacity. You pay nothing when
+      # nobody is using the app.
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S  # S = String type
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH  # WHY HASH? session_id is our partition key.
+          # Every interview session has a unique ID, making it the natural
+          # primary key for lookups.
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+        # WHY TTL? Auto-delete old sessions after expiry to stay within
+        # free tier storage limits. We set TTL = 7 days in our code.
+
+  # ===========================================================================
+  # LAMBDA FUNCTION - FastAPI Backend
+  # WHY Lambda? Serverless compute that:
+  # 1. Scales from 0 to thousands of concurrent requests automatically
+  # 2. Costs $0 when nobody is using it (free tier: 1M requests/month)
+  # 3. No servers to manage, patch, or monitor
+  # 4. Mangum adapter wraps our FastAPI app with zero code changes
+  # ===========================================================================
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'resumegrind-backend-${Environment}'
+      CodeUri: ../backend/
+      Handler: lambda_handler.handler
+      # WHY this handler path? Mangum creates a `handler` variable in
+      # lambda_handler.py that adapts FastAPI's ASGI interface to Lambda's
+      # event-based interface. AWS calls this function for every API request.
+      Policies:
+        # WHY IAM Policies? Lambda needs explicit permission to access other
+        # AWS services. This follows the Principle of Least Privilege —
+        # only grant the minimum permissions needed.
+        - S3CrudPolicy:
+            BucketName: !Ref ResumeBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+      Events:
+        # WHY Events? This creates the API Gateway trigger automatically.
+        # Every HTTP request matching {proxy+} gets forwarded to our Lambda.
+        ApiGateway:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+
+  # ===========================================================================
+  # API GATEWAY - HTTP API
+  # WHY API Gateway? It's the "front door" for our backend:
+  # 1. Handles HTTPS termination (SSL certificates)
+  # 2. Routes requests to Lambda
+  # 3. Provides throttling and rate limiting
+  # 4. Free tier: 1M API calls/month
+  # ===========================================================================
+  ApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      CorsConfiguration:
+        AllowHeaders: ['*']
+        AllowMethods: ['*']
+        AllowOrigins: ['*']
+        # WHY Allow all origins? For development. In production, you'd
+        # restrict this to your CloudFront domain only.
+
+# =============================================================================
+# OUTPUTS
+# WHY Outputs? After deployment, these values are printed to the terminal
+# so you know the URLs of your deployed services.
+# =============================================================================
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+
+  FrontendUrl:
+    Description: CloudFront distribution URL (your website)
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  ResumeBucketName:
+    Description: S3 bucket for resume uploads
+    Value: !Ref ResumeBucket
+
+  SessionsTableName:
+    Description: DynamoDB table for interview sessions
+    Value: !Ref SessionsTable

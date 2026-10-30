@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+mangum
+boto3
+pdfplumber
+python-docx
+httpx
+beautifulsoup4
+google-genai
+pydantic
+pydantic-settings
+python-multipart
+python-dotenv
+pytest
+pytest-asyncio

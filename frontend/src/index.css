@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    border-radius: 20px;
+  }
+}
+
+@keyframes waveform {
+  0% { transform: scaleY(0.2); }
+  50% { transform: scaleY(1); }
+  100% { transform: scaleY(0.2); }
+}
+
+.animate-waveform {
+  animation: waveform 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+body {
+  /* Brighter, luminous ambient background with zero blue */
+  background: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.22) 0px, transparent 48%),
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.16) 0px, transparent 48%),
+    radial-gradient(at 50% 100%, rgba(20, 184, 166, 0.18) 0px, transparent 55%),
+    linear-gradient(180deg, #1e293b 0%, #293548 45%, #1e293b 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  min-height: 100vh;
+}

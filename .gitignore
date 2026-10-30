@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+backend/venv/
+.pytest_cache/
+*.log
+
+# Large Binary Model Files (Crucial: GitHub 100MB limit)
+*.gguf
+*.bin
+*.pt
+*.safetensors
+Llama-3.2-3B-Instruct.Q4_K_M.gguf
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.npm
+.eslintcache
+
+# Environment & Secrets (Crucial: Never expose API keys)
+.env
+.env.local
+.env.*.local
+backend/.env
+_test_session_id.txt
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Build & Outputs
+build/
+*.exe
+!MinGW/**
