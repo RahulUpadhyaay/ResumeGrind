@@ -123,16 +123,20 @@ export default function InterviewCockpit({ interview, onComplete }) {
   }, [phase, onComplete, stopSpeaking, stopListening]);
 
   // Handle submit answer with strict locking & validation to prevent dropped responses
-  const handleSubmitAnswer = async () => {
+  const handleSubmitAnswer = async (overrideText = null) => {
     if (isSubmitting || phase === 'evaluating') return;
 
-    // 1. Capture transcript safely
-    let text = (getTranscript && getTranscript()) || transcript || "";
-    if (isListening) {
-      const liveText = stopListening();
-      text = liveText || text;
+    let text = "";
+    if (typeof overrideText === 'string' && overrideText.trim()) {
+      text = overrideText.trim();
+    } else {
+      text = (getTranscript && getTranscript()) || transcript || "";
+      if (isListening) {
+        const liveText = stopListening();
+        text = liveText || text;
+      }
+      text = (text || "").trim();
     }
-    text = (text || "").trim();
 
     if (!text) {
       alert("Please speak into your microphone or type your answer before clicking Submit.");
@@ -417,7 +421,7 @@ export default function InterviewCockpit({ interview, onComplete }) {
               </button>
             </motion.div>
           ) : context.type === 'github_code' ? (
-            <CodeInspector key="code" context={context} />
+            <CodeInspector key="code" context={context} onSubmitCode={handleSubmitAnswer} isSubmittingParent={isSubmitting} />
           ) : context.type === 'live_project' ? (
             <ProjectPreview key="project" context={context} />
           ) : null}

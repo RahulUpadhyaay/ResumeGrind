@@ -110,25 +110,26 @@ class OllamaProvider(BaseAIProvider):
             top_skill = resume.skills[0] if resume.skills else "Software Engineering"
             projects_summary = ", ".join(resume.experience_items[:2]) if resume.experience_items else "Backend Architecture"
 
+            candidate_name = resume.candidate_name or "Candidate"
             prompt = f"""You are ResumeGrind-Llama3 conducting an elite technical mock interview.
 {persona_instructions}
 {language_instructions}
 
 {context}
 
-Generate the very FIRST opening question (Round 1) for this candidate.
-REQUIREMENTS:
-1. First, warmly invite the candidate to give a concise introduction of themselves and their background.
-2. Then, ask them to dive into the most challenging technical project or architecture from their resume ({top_skill} or {projects_summary}).
+ROUND 1 REQUIREMENT (PROFESSIONAL CANDIDATE INTRODUCTION):
+The interview must begin professionally with the candidate's personal introduction.
+- Warmly welcome {candidate_name} and ask them to introduce themselves, summarize their engineering background, and highlight their key technologies.
+- Do NOT jump into difficult project cross-examination yet. That will happen in Round 2.
 
 Return ONLY valid JSON matching this schema:
 {{
     "resume_summary": "one-line candidate summary highlighting key tech stack",
     "question": {{
-        "question_text": "Welcome to your technical interview! Please start with a concise introduction of yourself, and then walk me through the most technically challenging project on your resume, detailing your architecture and the trade-offs you made.",
-        "voice_text": "Welcome to your technical interview! Please give me a concise introduction of yourself and tell me about the most difficult engineering challenge on your resume.",
-        "difficulty": "medium",
-        "category": "introduction"
+        "question_text": "Welcome to your technical interview, {candidate_name}! To start off, please introduce yourself, give a brief overview of your engineering background, and highlight the primary technologies and domains you specialize in.",
+        "voice_text": "Welcome to your technical interview, {candidate_name}! To start off, please introduce yourself, give a brief overview of your engineering background, and highlight the primary technologies and domains you specialize in.",
+        "difficulty": "easy",
+        "category": "Candidate Introduction"
     }}
 }}"""
 
@@ -179,6 +180,11 @@ Return ONLY valid JSON matching this schema:
         ]
         wants_coding = any(k in clean_text.lower() for k in coding_requests)
 
+        # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
+        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        if is_code_submission:
+            return self.fallback_provider._evaluate_dsa_code_submission(clean_text, session, resume)
+
         if wants_coding:
             return self.fallback_provider._build_dsa_challenge(transcript)
 
@@ -186,9 +192,10 @@ Return ONLY valid JSON matching this schema:
         # 2. System Design Intent Detection (Pure Verbal - No Cluttered Right Panel)
         # ------------------------------------------------------------------
         sys_design_triggers = [
-            "system design", "architecture", "scalability", "scale", "distributed system",
-            "microservices", "sharding", "kafka", "caching", "rate limiting", "load balancer",
-            "move on to system design", "switch to system design", "ask system design"
+            "move on to system design", "move to system design", "switch to system design",
+            "let's do system design", "lets do system design", "ask system design",
+            "ask me system design", "system design question", "system design round",
+            "start system design", "pivot to system design"
         ]
         wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
 
@@ -301,7 +308,7 @@ Return ONLY valid JSON matching this schema:
                     asked_texts.add(t.question.question_text.strip().lower())
 
             if not gen_q_text or gen_q_text.lower() in asked_texts or len(gen_q_text) < 15:
-                return self.fallback_provider._fallback_cross_examine(session, transcript, inspection, current_turn)
+                gen_q_text, _ = self.fallback_provider._get_unique_next_question(asked_texts, is_hindi=(session.config.language == InterviewLanguage.HI))
 
             combined_voice_text = f"{persona_reaction.strip()} ... {nq_data.get('voice_text', gen_q_text)}"
 

@@ -20,6 +20,7 @@ class ResumeAnalysis(BaseModel):
     skills: List[str]
     experience_items: List[str]
     extracted_urls: List[ExtractedURL]
+    candidate_name: Optional[str] = None
 
 class CodeFile(BaseModel):
     file_path: str

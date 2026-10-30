@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, ExternalLink, FileCode2, Copy, Check, Play, Terminal, Code2, Sparkles, RefreshCw, ShieldAlert, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+import { Github, ExternalLink, FileCode2, Copy, Check, Play, Terminal, Code2, Sparkles, RefreshCw, ShieldAlert, CheckCircle2, XCircle, RotateCcw, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { executeCode } from '../api/client';
 
@@ -9,29 +9,44 @@ const LANGUAGE_TEMPLATES = {
 
 class Solution:
     def twoSum(self, nums: list[int], target: int) -> list[int]:
-        # Implement your O(N) logic here:
-        seen = {}
-        for i, num in enumerate(nums):
-            diff = target - num
-            if diff in seen:
-                return [seen[diff], i]
-            seen[num] = i
-        return []
+        # Write your code logic here:
+        pass
 `,
   javascript: `// LeetCode 1: Two Sum
 // Constraints: 2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9
 
 var twoSum = function(nums, target) {
-    // Implement your O(N) logic here:
-    const map = new Map();
-    for (let i = 0; i < nums.length; i++) {
-        const diff = target - nums[i];
-        if (map.has(diff)) {
-            return [map.get(diff), i];
-        }
-        map.set(nums[i], i);
+    // Write your code logic here:
+    
+};
+`,
+  java: `// LeetCode 1: Two Sum
+// Constraints: 2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9
+
+import java.util.*;
+
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // Write your code logic here:
+        return new int[0];
     }
-    return [];
+}
+`,
+  cpp: `// LeetCode 1: Two Sum
+// Constraints: 2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9
+
+#include <vector>
+#include <unordered_map>
+using namespace std;
+
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        // Write your code logic here:
+        return {};
+    }
+};
+`
 };
 `,
   java: `// LeetCode 1: Two Sum
@@ -79,7 +94,7 @@ public:
 `
 };
 
-export default function CodeInspector({ context }) {
+export default function CodeInspector({ context, onSubmitCode, isSubmittingParent = false }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState('sandbox');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -110,6 +125,13 @@ export default function CodeInspector({ context }) {
   const handleResetTemplate = () => {
     if (LANGUAGE_TEMPLATES[selectedLanguage]) {
       setSandboxCode(LANGUAGE_TEMPLATES[selectedLanguage]);
+    }
+  };
+
+  const handleSubmitToInterviewer = async () => {
+    if (onSubmitCode) {
+      const submission = `Here is my live DSA solution in ${selectedLanguage.toUpperCase()}:\n\n\`\`\`${selectedLanguage}\n${sandboxCode}\n\`\`\``;
+      await onSubmitCode(submission);
     }
   };
 
@@ -220,14 +242,27 @@ export default function CodeInspector({ context }) {
           </button>
 
           {mode === 'sandbox' ? (
-            <button
-              onClick={handleRunCode}
-              disabled={isExecuting}
-              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold border border-emerald-400 rounded-lg text-xs transition-all shadow-lg shadow-emerald-500/20"
-            >
-              {isExecuting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-              <span>{isExecuting ? 'Running...' : 'Run Code'}</span>
-            </button>
+            <div className="flex items-center space-x-1.5">
+              <button
+                onClick={handleRunCode}
+                disabled={isExecuting || isSubmittingParent}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-slate-700/90 hover:bg-slate-700 disabled:opacity-50 text-cyan-300 font-bold border border-cyan-500/30 rounded-lg text-xs transition-all shadow-sm"
+                title="Run code against unit tests"
+              >
+                {isExecuting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                <span>{isExecuting ? 'Running...' : 'Run Code'}</span>
+              </button>
+
+              <button
+                onClick={handleSubmitToInterviewer}
+                disabled={isExecuting || isSubmittingParent}
+                className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold border border-emerald-400 rounded-lg text-xs transition-all shadow-lg shadow-emerald-500/20"
+                title="Submit your code solution to the AI interviewer for grading"
+              >
+                {isSubmittingParent ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                <span>Submit</span>
+              </button>
+            </div>
           ) : (
             githubUrl && (
               <a 

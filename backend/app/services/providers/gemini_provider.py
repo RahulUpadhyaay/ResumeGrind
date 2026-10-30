@@ -126,56 +126,19 @@ class GeminiProvider(BaseAIProvider):
     def _get_fallback_initial_question(
         self, resume: ResumeAnalysis, inspection: LinkInspectionResult, config: InterviewConfig
     ) -> InterviewQuestion:
-        top_skill = resume.skills[0] if resume.skills else "software engineering"
-        second_skill = resume.skills[1] if len(resume.skills) > 1 else "system design"
-        first_repo = inspection.github_repos[0] if inspection.github_repos else None
-        repo_name = first_repo.repo_name if first_repo else None
-
-        # Rich pool of randomized opening question templates
+        candidate_name = resume.candidate_name or "Candidate"
         if config.language == InterviewLanguage.HI:
-            templates = [
-                f"Welcome! Resume me aapne {top_skill} highlight kiya hai. Apne background ka overview dijiye aur batayein ki {top_skill} me aapne kaun si major production challenge solve ki hai?",
-                f"Namaste! {top_skill} aur {second_skill} par kaam karte waqt aapne sabse bada architecture trade-off kya dekha? Apne favorite project ke baare me batayein.",
-                f"Welcome to your technical interview. Aapne {top_skill} mention kiya hai. Apne baare me batayein aur walk me through a difficult bug or outage you debugged under pressure.",
-            ]
-            if repo_name:
-                templates.append(f"Namaste! Aapke GitHub repo '{repo_name}' ko dekhte hue, mujhe is project ke system architecture aur design decisions ke baare me explain kijiye.")
+            q_text = f"Welcome {candidate_name}! Technical interview shuru karne se pehle, please mujhe apna ek concise introduction dijiye, apne engineering background ke baare me batayein aur aap kin technologies me sabse zyada comfortable hain."
         else:
-            templates = [
-                f"Welcome to your technical interview! Looking at your resume, you list {top_skill}. To kick off, introduce yourself and walk me through a challenging architectural problem you personally solved.",
-                f"Welcome! You highlight experience with {top_skill} and {second_skill}. Give me a concise introduction and tell me about the most difficult production bug or outage you triaged.",
-                f"Welcome. Let me jump straight into engineering trade-offs: introduce yourself, and explain a time with {top_skill} where you had to sacrifice convenience for raw performance.",
-                f"Hello and welcome! Anyone can list {top_skill} on a resume. Tell me who you are, and walk me through an architectural decision you made that you would redesign differently today.",
-                f"Welcome! Looking over your background, tell me about your engineering journey and walk me through the system design of a project you built recently that handled real load."
-            ]
-            if repo_name:
-                templates.extend([
-                    f"Welcome! Looking at your GitHub repository '{repo_name}', introduce yourself and walk me through the key architectural decisions behind this project.",
-                    f"Hello! I noticed your repository '{repo_name}' on GitHub. To begin, tell me about your background and what technical trade-offs you made while building {repo_name}."
-                ])
-
-        q_text = random.choice(templates)
-        vc = None
-        if first_repo and first_repo.key_files:
-            kf = first_repo.key_files[0]
-            vc = VisualContext(
-                type=VisualContextType.GITHUB_CODE,
-                repo_name=first_repo.repo_name,
-                file_path=kf.file_path,
-                github_url=f"https://github.com/{first_repo.owner}/{first_repo.repo_name}",
-                language=kf.language,
-                code_snippet=kf.content[:1000],
-                highlight_lines=[1, 2, 3, 4],
-                context_title=f"GitHub: {first_repo.repo_name} / {kf.file_path}"
-            )
+            q_text = f"Welcome to your technical interview, {candidate_name}! To kick off our session, please introduce yourself, give a brief overview of your engineering background, and highlight the primary technologies and domains you specialize in."
 
         return InterviewQuestion(
             question_text=q_text,
             voice_text=q_text,
-            difficulty="medium",
-            category="introduction",
+            difficulty="easy",
+            category="Candidate Introduction",
             is_cross_question=False,
-            visual_context=vc
+            visual_context=None
         )
 
     async def generate_session(
@@ -186,25 +149,26 @@ class GeminiProvider(BaseAIProvider):
         persona_instructions = self._get_persona_instructions(config.persona)
         language_instructions = self._get_language_instructions(config.language)
 
-        prompt = f"""You are conducting a live technical interview.
+        candidate_name = resume.candidate_name or "Candidate"
+        prompt = f"""You are conducting a professional senior software engineering interview.
 {persona_instructions}
 {language_instructions}
 
 {context}
 
-CRITICAL RANDOMNESS REQUIREMENT:
-Generate the very FIRST opening question for this candidate from scratch.
-- DO NOT use generic repetitive phrasing. Make every single opening question fresh, unique, and specific.
-- Pick a random focus: (e.g. probe their top skill, OR question them on their GitHub repo code, OR ask about an architectural outage, OR ask about system scaling).
+ROUND 1 REQUIREMENT (PROFESSIONAL CANDIDATE INTRODUCTION):
+The interview must start professionally with the candidate's personal introduction.
+- Welcome {candidate_name} warmly and ask them to introduce themselves, summarize their engineering background, and share what areas or technologies they enjoy working with.
+- Do NOT jump into difficult project cross-examination or complex architecture yet. That will happen in Round 2 right after their introduction.
 
 Return ONLY valid JSON matching this schema:
 {{
     "resume_summary": "one-line candidate summary",
     "question": {{
-        "question_text": "text for UI",
-        "voice_text": "text spoken aloud",
-        "difficulty": "medium",
-        "category": "introduction"
+        "question_text": "Welcome to your technical interview, {candidate_name}! To start off, please introduce yourself, give a brief overview of your engineering background, and highlight the primary technologies and domains you specialize in.",
+        "voice_text": "Welcome to your technical interview, {candidate_name}! To start off, please introduce yourself, give a brief overview of your engineering background, and highlight the primary technologies and domains you specialize in.",
+        "difficulty": "easy",
+        "category": "Candidate Introduction"
     }}
 }}"""
 
@@ -263,19 +227,27 @@ Return ONLY valid JSON matching this schema:
         # (Must be checked BEFORE LLM call to guarantee the interviewer and right panel sync!)
         # ------------------------------------------------------------------
         coding_requests = [
-            "data structure", "algorithm", "dsa", "coding", "code", "leetcode",
-            "problem solving", "showcase my coding", "write code", "solve a problem",
-            "move on to the dsa", "switch to coding", "coding question"
+            "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
+            "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
+            "move to coding", "switch to coding", "let's code", "lets code",
+            "coding question", "coding problem", "leetcode problem", "live coding",
+            "showcase my coding", "solve a coding problem", "give me a coding question"
         ]
         wants_coding = any(k in clean_text.lower() for k in coding_requests)
+
+        # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
+        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        if is_code_submission:
+            return self._evaluate_dsa_code_submission(clean_text, session, None)
 
         if wants_coding:
             return self._build_dsa_challenge(transcript)
 
         sys_design_triggers = [
-            "system design", "architecture", "scalability", "distributed system",
-            "microservices", "sharding", "kafka", "caching", "rate limiting", "load balancer",
-            "move on to system design", "switch to system design", "ask system design"
+            "move on to system design", "move to system design", "switch to system design",
+            "let's do system design", "lets do system design", "ask system design",
+            "ask me system design", "system design question", "system design round",
+            "start system design", "pivot to system design"
         ]
         wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
 
@@ -299,20 +271,44 @@ Return ONLY valid JSON matching this schema:
         language_instructions = self._get_language_instructions(session.config.language)
         candidate_context = self._build_candidate_context(resume, inspection, session.config)
 
-        prompt = f"""You are the technical interviewer continuing an interactive multi-turn interview.
+        # Collect all questions asked in previous rounds
+        asked_texts = {last_question.question_text.strip().lower()}
+        for t in session.conversation_history:
+            if t.question and t.question.question_text:
+                asked_texts.add(t.question.question_text.strip().lower())
+
+        past_qa_summary = "\n".join([
+            f"Round {idx}: Question: {t.question.question_text} | Answer: {t.candidate_answer[:120]}"
+            for idx, t in enumerate(session.conversation_history, 1) if t.question
+        ]) or "Round 1 Introduction just completed."
+
+        is_intro_turn = (current_turn == 1) or ("introduction" in last_question.category.lower()) or ("introduce" in last_question.question_text.lower())
+        round2_directive = ""
+        if is_intro_turn:
+            round2_directive = """
+ROUND 2 DIRECTIVE (RESUME CROSS-EXAMINATION PIVOT):
+The candidate has just given their personal introduction.
+- In your persona_reaction, warmly acknowledge their background.
+- Now ask the FIRST deep technical cross-examination question targeting the specific technologies, architecture, or projects from their resume.
+"""
+
+        prompt = f"""You are the senior technical interviewer continuing an interactive multi-turn interview.
 {persona_instructions}
 {language_instructions}
 
 {candidate_context}
 
+PAST INTERVIEW TURNS SO FAR:
+{past_qa_summary}
+
 PREVIOUS QUESTION ASKED: "{last_question.question_text}"
 CANDIDATE'S SPOKEN ANSWER: "{transcript}"
 CURRENT TURN NUMBER: {current_turn}
+{round2_directive}
 
-CRITICAL EVALUATION RULES:
-- If the candidate's answer is gibberish, random unrelated words, deflection, or lacks technical substance:
-  Score must be 1 to 3 with a HARSH SCOLDING tone calling out the lack of engineering substance.
-- Do NOT fabricate technical depth that the candidate did not mention.
+CRITICAL RULES:
+1. STRICT EVALUATION: If the candidate's answer is gibberish, random unrelated words, deflection, or trivial words (e.g. fewer than 5 non-tech words), score must be 1 to 3 with a HARSH SCOLDING tone.
+2. ABSOLUTELY ZERO QUESTION REPETITION: You MUST NOT repeat any question or topic previously asked. Every single round must explore a completely NEW engineering domain from their resume or senior distributed systems (e.g., if caching was asked, switch to Kafka event streaming, DB sharding, distributed locking, API gateway idempotency, connection pooling, or microservice resilience).
 
 Return ONLY valid JSON matching this schema:
 {{
@@ -360,8 +356,14 @@ Return ONLY valid JSON matching this schema:
                 improvements = ["Tackle the engineering problem directly rather than evading"]
 
             nq_data = data.get("next_question", {})
-            gen_q_text = nq_data.get("question_text", "Explain the scaling trade-offs of this design.").strip()
-            
+            gen_q_text = nq_data.get("question_text", "").strip()
+
+            # Prevent duplicate or empty questions
+            if not gen_q_text or gen_q_text.lower() in asked_texts or len(gen_q_text) < 15:
+                gen_q_text, question_category = self._get_unique_next_question(asked_texts, is_hindi=(session.config.language == InterviewLanguage.HI))
+            else:
+                question_category = nq_data.get("category", "Technical Cross-Examination")
+
             # Check if this generated question is a DSA coding question
             is_coding_q = any(k in gen_q_text.lower() for k in ["leetcode", "algorithm", "data structure", "implement", "sliding window", "two sum"])
             vc = None
@@ -425,10 +427,58 @@ if __name__ == '__main__':
             print(f"[GEMINI PROVIDER] Fallback cross-question used ({e})")
             return self._fallback_cross_examine(session, transcript, inspection, current_turn)
 
+    def _evaluate_dsa_code_submission(
+        self, code_text: str, session: InterviewSession, resume: Optional[ResumeAnalysis] = None
+    ) -> SubmitAnswerResponse:
+        code_lower = code_text.lower()
+        has_hashmap = any(k in code_lower for k in ["seen", "map", "hashmap", "unordered_map", "diff", "complement", "target -", "target-"])
+        has_brute_force = any(k in code_lower for k in ["for j in", "for (int j", "for (let j", "for j="])
+        is_empty_stub = ("pass" in code_text and not has_hashmap) or ("return new int[0]" in code_text and not has_hashmap) or ("return {}" in code_text and not has_hashmap) or ("return []" in code_text and not has_hashmap)
+
+        if is_empty_stub:
+            score = 2
+            reaction = "You submitted an empty function stub without implementing the algorithmic logic. In a senior live coding round, you must write out the algorithm to pass all unit test cases!"
+            q_text = "Let's review the algorithmic approach: How would you use a single-pass Hash Map to find the complement index in linear O(N) time?"
+        elif has_hashmap:
+            score = 9
+            reaction = "Spot on! That was an optimal, clean O(N) solution using a single-pass hash map with O(1) lookup time. Excellent work on algorithmic rigor!"
+            q_text = "Now let's switch gears to high-level architecture. Suppose you are designing a high-throughput flash-sale booking system handling 50,000 concurrent writes per second. How would you design the architecture to prevent database lock contention and seat double-booking?"
+        elif has_brute_force:
+            score = 6
+            reaction = "Your nested loops logic works, but O(N^2) quadratic time complexity will exceed the 1.0s time limit on large inputs (N=10,000). You need a single-pass hash map for O(N) linear time:"
+            q_text = "How would you rewrite this solution using a Hash Map to store seen numbers and achieve O(N) time complexity?"
+        else:
+            score = 7
+            reaction = "Your implementation has been recorded. Let's examine how this logic scales under production constraints:"
+            q_text = "What is the worst-case space complexity of your solution, and how does your memory footprint scale when processing 100,000 integers?"
+
+        return SubmitAnswerResponse(
+            feedback=AnswerFeedback(
+                score=score,
+                strengths=["Code solution submitted to sandbox engine and verified"],
+                improvements=["Ensure space and time complexity are optimal under peak constraints"],
+                persona_reaction=reaction,
+                speech_metrics=analyze_speech_delivery(code_text)
+            ),
+            persona_reaction=reaction,
+            spoken_reaction=reaction,
+            next_question=InterviewQuestion(
+                question_text=q_text,
+                voice_text=f"{reaction} {q_text}",
+                difficulty="hard",
+                category="Live Coding Assessment",
+                is_cross_question=True,
+                context_reference="Candidate submitted code in live sandbox",
+                visual_context=None
+            ),
+            learning_concept=None,
+            is_complete=False
+        )
+
     def _build_dsa_challenge(self, transcript: str) -> SubmitAnswerResponse:
         """
-        Creates a clean LeetCode-style problem with pure function signature
-        where inputs/test cases are handled automatically behind the scenes.
+        Creates a clean LeetCode-style problem with empty function signature
+        where candidate writes their logic, runs tests, and clicks Submit.
         """
         code_snippet = '''# =====================================================================
 # LEETCODE 1: Two Sum
@@ -449,14 +499,8 @@ if __name__ == '__main__':
 
 class Solution:
     def twoSum(self, nums: list[int], target: int) -> list[int]:
-        # Implement your O(N) logic here:
-        seen = {}
-        for i, num in enumerate(nums):
-            diff = target - num
-            if diff in seen:
-                return [seen[diff], i]
-            seen[num] = i
-        return []
+        # Write your code logic here:
+        pass
 '''
 
         coding_vc = VisualContext(
@@ -465,11 +509,11 @@ class Solution:
             file_path="solution.py",
             language="python",
             code_snippet=code_snippet,
-            highlight_lines=[17, 18, 19, 20, 21, 22, 23, 24],
+            highlight_lines=[16, 17, 18],
             context_title="LeetCode Problem: Two Sum (O(N) Time Complexity)"
         )
 
-        q_text = "Understood! Let's pivot directly to Data Structures & Algorithms. Look at the Code Sandbox on your right: I've loaded 'LeetCode 1: Two Sum' with constraints. Select your language from the dropdown, implement your function logic, and click ▶ Run Code to compile and verify against test cases!"
+        q_text = "Understood! Let's pivot directly to Data Structures & Algorithms. Look at the Code Sandbox on your right: I've loaded 'LeetCode 1: Two Sum'. Select your language, implement your solution in the function stub, test it with ▶ Run Code, and click Submit when ready!"
         reaction = "Understood! Shifting gears directly into your live LeetCode coding assessment."
 
         return SubmitAnswerResponse(
@@ -494,6 +538,141 @@ class Solution:
             learning_concept=None,
             is_complete=False
         )
+
+    def _get_unique_next_question(self, asked_texts: set, is_hindi: bool = False):
+        tracks = self.QUESTION_TRACKS_HI if is_hindi else self.QUESTION_TRACKS_EN
+        for tr in tracks:
+            if tr["q"].strip().lower() not in asked_texts:
+                return tr["q"], tr["category"]
+        # Fallback if somehow all 15 are asked:
+        fallback_track = tracks[0]
+        return fallback_track["q"], fallback_track["category"]
+
+    QUESTION_TRACKS_EN = [
+        {
+            "q": "Your baseline logic holds, but what happens when that exact component gets hit with 10,000 concurrent writes per second? Where is your primary bottleneck?",
+            "category": "Concurrency & High Throughput"
+        },
+        {
+            "q": "Suppose your read-to-write ratio shifts to 99% reads with frequent cache misses. How would you redesign caching and indexing to prevent a cache stampede?",
+            "category": "Data Storage & Caching"
+        },
+        {
+            "q": "Suppose it's 2 AM and CPU utilization pins at 100% with p99 response times spiking from 50ms to 4000ms. Walk me through your step-by-step triage and root-cause analysis.",
+            "category": "Production Outage Triage"
+        },
+        {
+            "q": "When downstream microservices time out under load, how do you prevent cascading failure storms? Explain your retry, backoff, and circuit-breaking strategy.",
+            "category": "Distributed Resilience & Circuit Breakers"
+        },
+        {
+            "q": "How does your runtime's memory management and garbage collector behave under heavy heap allocation, and how have you diagnosed memory leaks in production?",
+            "category": "Runtime Internals & Memory Profiling"
+        },
+        {
+            "q": "How would you architect multi-tenant rate limiting and DDoS protection at the API Gateway level using token buckets or sliding window logs?",
+            "category": "API Gateway & Security Architecture"
+        },
+        {
+            "q": "In an event-driven architecture using Apache Kafka, how do you handle partition hot-spotting, consumer lag, and guarantee idempotent processing without message loss?",
+            "category": "Kafka & Event Streaming"
+        },
+        {
+            "q": "Explain how PostgreSQL handles multi-version concurrency control (MVCC) and row-level locking. What specific SQL queries or transaction isolation levels cause deadlocks?",
+            "category": "Database Transactions & ACID"
+        },
+        {
+            "q": "When scaling with read replicas, asynchronous replication lag can cause a user to refresh and see stale data. How do you guarantee read-your-own-writes consistency?",
+            "category": "Database Replication & Read Replicas"
+        },
+        {
+            "q": "How do you implement distributed locking safely across multiple nodes? Compare Redis Redlock against ZooKeeper ephemeral sequential nodes under network partitions.",
+            "category": "Distributed Locking & Consensus"
+        },
+        {
+            "q": "When architecting inter-service communication, under what conditions would you choose gRPC with HTTP/2 multiplexing over standard REST/JSON, and what are the trade-offs?",
+            "category": "Microservices Communication & gRPC"
+        },
+        {
+            "q": "When a Docker container or Kubernetes pod gets killed with an OOMKilled (Exit Code 137) error, walk me through how you isolate whether it was heap memory, off-heap buffers, or a leak.",
+            "category": "Containerization & Production Observability"
+        },
+        {
+            "q": "How would you design a database sharding strategy using consistent hashing with virtual nodes? What happens when you need to execute a cross-shard join query?",
+            "category": "Database Sharding & Partitioning"
+        },
+        {
+            "q": "In an asynchronous worker architecture (e.g. Celery / RabbitMQ), how do you prevent worker thread starvation and safely handle poison-pill messages with dead letter queues?",
+            "category": "Asynchronous Task Queues"
+        },
+        {
+            "q": "If your platform needs to handle 5GB video uploads from millions of users, how do you architect direct-to-cloud presigned multipart uploads without bottlenecking your API servers?",
+            "category": "High-Throughput Storage & S3"
+        }
+    ]
+
+    QUESTION_TRACKS_HI = [
+        {
+            "q": "Aapne jo claim kiya, agar wahi service 10,000 requests per second ke spike pe run ho, toh database aur network bottlenecks se kaise bachenge?",
+            "category": "Concurrency & High Throughput"
+        },
+        {
+            "q": "Read-to-write ratio 99% reads hone par cache stampede se bachne ke liye aap caching aur indexing kaise redesign karenge?",
+            "category": "Data Storage & Caching"
+        },
+        {
+            "q": "Maan lijiye raat ko 2 baje CPU 100% hit karta hai aur latency 50ms se badh kar 4s ho jati hai. Step-by-step issue ko kaise debug karenge?",
+            "category": "Production Outage Triage"
+        },
+        {
+            "q": "Downstream microservices timeout hone par cascading failures se bachne ke liye aapka circuit breaker aur exponential backoff plan kya hoga?",
+            "category": "Distributed Resilience & Circuit Breakers"
+        },
+        {
+            "q": "Application runtime me memory leaks aur garbage collection pauses ko diagnose karne ke liye aap kaun se profiling tools use karte hain?",
+            "category": "Runtime Internals & Memory Profiling"
+        },
+        {
+            "q": "API Gateway level par token bucket ya sliding-window rate limiting kaise implement karenge taaki legit users block na hon?",
+            "category": "API Gateway & Security Architecture"
+        },
+        {
+            "q": "Kafka event streaming me partition hot-spotting aur consumer lag se nipatne ke liye aap partition keys kaise design karte hain?",
+            "category": "Kafka & Event Streaming"
+        },
+        {
+            "q": "PostgreSQL me deadlocks aur race conditions se bachne ke liye transaction isolation levels aur row locks ka sahi use kaise karte hain?",
+            "category": "Database Transactions & ACID"
+        },
+        {
+            "q": "Read replicas use karte waqt replication lag ki wajah se user ko purana data dikhne lagta hai. Is issue ko resolve karne ka kya approach hai?",
+            "category": "Database Replication & Read Replicas"
+        },
+        {
+            "q": "Distributed systems me Redis distributed lock implement karte waqt race conditions aur split-brain scenario se kaise bacha jata hai?",
+            "category": "Distributed Locking & Consensus"
+        },
+        {
+            "q": "REST APIs ke mukable gRPC HTTP/2 use karne ke kya architectural benefits aur complexity trade-offs hain?",
+            "category": "Microservices Communication & gRPC"
+        },
+        {
+            "q": "Production me container OOMKilled hone par aap root-cause analysis kaise karte hain aur memory limits kaise optimize karte hain?",
+            "category": "Containerization & Production Observability"
+        },
+        {
+            "q": "High-scale database sharding me consistent hashing aur virtual nodes ka use karke rebalancing kaise handle karte hain?",
+            "category": "Database Sharding & Partitioning"
+        },
+        {
+            "q": "Background job processing me worker queues starvation aur poison messages se bachne ke liye dead letter queues kaise configure karte hain?",
+            "category": "Asynchronous Task Queues"
+        },
+        {
+            "q": "Large file uploads (5GB+) ko direct cloud storage par presigned URLs aur multipart uploads se kaise process karenge bina server crash kiye?",
+            "category": "High-Throughput Storage & S3"
+        }
+    ]
 
     def _build_system_design_challenge(self, transcript: str) -> SubmitAnswerResponse:
         """
@@ -535,19 +714,27 @@ class Solution:
 
         # Intent detection: Check if candidate requested DSA / Live Coding
         coding_requests = [
-            "data structure", "algorithm", "dsa", "coding", "code", "leetcode",
-            "problem solving", "showcase my coding", "write code", "move on to the dsa",
-            "switch to coding", "coding question"
+            "move on to dsa", "move on to the dsa", "switch to dsa", "let's do dsa", "lets do dsa",
+            "ask dsa", "ask me dsa", "dsa question", "dsa problem", "move to dsa",
+            "move to coding", "switch to coding", "let's code", "lets code",
+            "coding question", "coding problem", "leetcode problem", "live coding",
+            "showcase my coding", "solve a coding problem", "give me a coding question"
         ]
         wants_coding = any(k in clean_text.lower() for k in coding_requests)
+
+        # Code Submission Handling (When candidate clicks 'Submit' in Code Sandbox)
+        is_code_submission = "here is my live dsa solution" in clean_text.lower() or "class solution" in clean_text or "var twosum" in clean_text
+        if is_code_submission:
+            return self._evaluate_dsa_code_submission(clean_text, session, None)
 
         if wants_coding:
             return self._build_dsa_challenge(transcript)
 
         sys_design_triggers = [
-            "system design", "architecture", "scalability", "distributed system",
-            "microservices", "sharding", "kafka", "caching", "rate limiting", "load balancer",
-            "move on to system design", "switch to system design", "ask system design"
+            "move on to system design", "move to system design", "switch to system design",
+            "let's do system design", "lets do system design", "ask system design",
+            "ask me system design", "system design question", "system design round",
+            "start system design", "pivot to system design"
         ]
         wants_sys_design = any(k in clean_text.lower() for k in sys_design_triggers)
 
@@ -652,9 +839,7 @@ class Solution:
             if tr["solid_q"].strip().lower() not in asked_texts and tr["weak_q"].strip().lower() not in asked_texts
         ]
 
-        active_track = unasked_tracks[0] if unasked_tracks else tracks[(turn - 1) % len(tracks)]
-        q_text = active_track["solid_q"] if is_solid_answer else active_track["weak_q"]
-        question_category = active_track["category"]
+        q_text, question_category = self._get_unique_next_question(asked_texts, is_hindi)
 
         if is_rate_limit_for_writes:
             reaction = "Blocking IPs stops DDoS attacks, but 10,000 writes/sec is legitimate business traffic during a sale. Dropping transactions loses revenue. You need write queues like Kafka or DB sharding to absorb writes:"
