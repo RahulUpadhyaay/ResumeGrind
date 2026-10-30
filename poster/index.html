@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResumeGrind - Academic Project Presentation Poster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-dark: #38050e;
+      --primary-maroon: #4a0e17;
+      --primary-red: #660f1e;
+      --gold-primary: #d4af37;
+      --gold-light: #f3e5ab;
+      --gold-border: #b89327;
+      --card-bg: #fffdf9;
+      --card-alt: #f8f4eb;
+      --text-dark: #1a1a1a;
+      --text-muted: #3a3a3a;
+      --border-color: #2b060d;
+      --accent-blue: #1e3a8a;
+      --accent-emerald: #065f46;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #1a1a1e;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0 60px 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Floating Toolbar */
+    .toolbar {
+      position: sticky;
+      top: 16px;
+      z-index: 9999;
+      background: rgba(24, 24, 27, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .toolbar span {
+      color: #f3e5ab;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbar button {
+      background: linear-gradient(135deg, #d4af37, #aa820a);
+      color: #2b060d;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+    }
+
+    .toolbar button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+      background: linear-gradient(135deg, #f3e5ab, #d4af37);
+    }
+
+    /* Poster Container (Matches A1 / Reference Dimensions: 1200px width) */
+    .poster-canvas {
+      width: 1240px;
+      min-height: 1720px;
+      background: #faf6ee;
+      border: 6px solid #d4af37;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    .poster-inner-border {
+      border: 2px solid #4a0e17;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      background: #faf6ee;
+    }
+
+    /* =========================================================================
+       HEADER SECTION
+       ========================================================================= */
+    .poster-header {
+      background: linear-gradient(180deg, #38050e 0%, #4a0e17 60%, #2e030a 100%);
+      color: #ffffff;
+      padding: 16px 24px;
+      border: 2px solid #d4af37;
+      display: grid;
+      grid-template-columns: 240px 1fr 240px;
+      align-items: center;
+      position: relative;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+    }
+
+    .header-logo-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      background: #ffffff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 2px solid #d4af37;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .header-logo-left .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-logo-left .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #4a0e17;
+      border: 2px solid #d4af37;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #d4af37;
+      font-weight: 900;
+      font-size: 18px;
+      font-family: 'Cinzel', serif;
+    }
+
+    .header-logo-left .logo-text-main {
+      color: #4a0e17;
+      font-size: 20px;
+      font-weight: 900;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+    }
+
+    .header-logo-left .logo-text-sub {
+      color: #555;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .header-logo-left .logo-tagline {
+      margin-top: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      color: #b91c1c;
+      letter-spacing: 0.8px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 3px;
+      width: 100%;
+    }
+
+    .header-logo-left .logo-affiliation {
+      font-size: 7.5px;
+      color: #4b5563;
+      font-weight: 600;
+    }
+
+    .header-titles {
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    .header-titles .college-name {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+      line-height: 1.2;
+    }
+
+    .header-titles .dept-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #f3e5ab;
+      letter-spacing: 0.8px;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .header-titles .presentation-title {
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 2px;
+      margin-top: 6px;
+      border-top: 1px solid rgba(212, 175, 55, 0.4);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+      padding: 3px 0;
+      display: inline-block;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    .header-titles .session-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #f3e5ab;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .header-badge-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px dashed #d4af37;
+      padding: 10px 14px;
+      border-radius: 8px;
+    }
+
+    .header-badge-right .eval-title {
+      font-family: 'Cinzel', serif;
+      color: #f3e5ab;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header-badge-right .eval-sub {
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .header-badge-right .eval-pill {
+      background: #d4af37;
+      color: #38050e;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    /* =========================================================================
+       POSTER MAIN GRID (3 Columns identical to Reference)
+       ========================================================================= */
+    .poster-grid-top {
+      display: grid;
+      grid-template-columns: 310px 420px 1fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    /* Common Card Styles */
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid #4a0e17;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 3px 6px rgba(0,0,0,0.06);
+    }
+
+    .card-header {
+      background: linear-gradient(90deg, #4a0e17 0%, #660f1e 100%);
+      color: #ffffff;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 5px 12px;
+      text-align: center;
+      border-bottom: 2px solid #d4af37;
+      text-transform: uppercase;
+      box-shadow: inset 0 -2px 5px rgba(0,0,0,0.2);
+    }
+
+    .card-body {
+      padding: 10px 12px;
+      font-size: 10.2px;
+      line-height: 1.48;
+      color: #1f2937;
+      flex: 1;
+    }
+
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6.5px;
+    }
+
+    .bullet-list li {
+      position: relative;
+      padding-left: 14px;
+      text-align: justify;
+    }
+
+    .bullet-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      top: -1px;
+      color: #660f1e;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .bullet-list strong {
+      color: #38050e;
+      font-weight: 700;
+    }
+
+    /* Group Info Card (Top Left) */
+    .group-info-card {
+      background: #faf5ea;
+      border: 2px solid #4a0e17;
+    }
+
+    .group-id-banner {
+      background: #4a0e17;
+      color: #f3e5ab;
+      text-align: center;
+      padding: 5px;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      border-bottom: 1.5px solid #d4af37;
+    }
+
+    .group-info-content {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .meta-group {
+      border-bottom: 1px dashed rgba(74, 14, 23, 0.25);
+      padding-bottom: 6px;
+    }
+
+    .meta-group:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .meta-label {
+      font-family: 'Cinzel', serif;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #660f1e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .meta-value-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+
+    .team-member-item {
+      font-size: 11px;
+      font-weight: 700;
+      color: #111827;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .team-member-item span.roll {
+      font-family: 'JetBrains Mono', monospace;
+      color: #4a0e17;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .supervisor-info {
+      font-size: 11px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .supervisor-desig {
+      font-size: 9.5px;
+      color: #4b5563;
+      font-weight: 600;
+    }
+
+    /* =========================================================================
+       MIDDLE ROW (Methodology & Workflow)
+       ========================================================================= */
+    .poster-grid-middle {
+      display: grid;
+      grid-template-columns: 742px 1fr;
+      gap: 12px;
+    }
+
+    /* Methodology Architecture Flow */
+    .methodology-box {
+      background: #ffffff;
+      border: 1.5px solid #4a0e17;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .methodology-diagram {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fdfbf7;
+    }
+
+    .pipeline-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .stage-card {
+      background: #ffffff;
+      border: 1px solid #b89327;
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .stage-header {
+      background: #4a0e17;
+      color: #f3e5ab;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 3px 4px;
+      border-radius: 3px;
+      text-align: center;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+
+    .stage-content {
+      font-size: 8.8px;
+      line-height: 1.35;
+      color: #27272a;
+    }
+
+    .stage-content ul {
+      list-style: none;
+      padding-left: 2px;
+    }
+
+    .stage-content ul li {
+      margin-bottom: 3.5px;
+      position: relative;
+      padding-left: 10px;
+    }
+
+    .stage-content ul li::before {
+      content: "▪";
+      position: absolute;
+      left: 0;
+      color: #b89327;
+      font-size: 10px;
+    }
+
+    .system-tech-strip {
+      background: #38050e;
+      color: #ffffff;
+      border-radius: 4px;
+      padding: 6px 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      font-size: 8.5px;
+      border: 1px solid #d4af37;
+    }
+
+    .tech-tier {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tech-tier-title {
+      font-size: 8.8px;
+      font-weight: 800;
+      color: #f3e5ab;
+      font-family: 'Cinzel', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tech-tier-desc {
+      color: #e5e7eb;
+      font-size: 8px;
+      line-height: 1.25;
+    }
+
+    .security-compliance-strip {
+      background: #f4ede1;
+      border: 1px solid #4a0e17;
+      border-radius: 4px;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 8.8px;
+      font-weight: 700;
+      color: #4a0e17;
+    }
+
+    .compliance-pill {
+      background: #4a0e17;
+      color: #f3e5ab;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    /* =========================================================================
+       BOTTOM ROW (Experimentation, Workflow Diagram, Conclusion, References)
+       ========================================================================= */
+    .poster-grid-bottom {
+      display: grid;
+      grid-template-columns: 390px 420px 1fr;
+      gap: 12px;
+    }
+
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+      margin-top: 4px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .metrics-table th {
+      background: #4a0e17;
+      color: #f3e5ab;
+      font-weight: 800;
+      font-family: 'Cinzel', serif;
+      padding: 4px 6px;
+      text-align: left;
+      border: 1px solid #b89327;
+      font-size: 8.5px;
+    }
+
+    .metrics-table td {
+      padding: 3.5px 6px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      font-size: 8.5px;
+    }
+
+    .metrics-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .metrics-table td.highlight {
+      font-weight: 800;
+      color: #065f46;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Workflow Horizontal Bar (Bottom of poster) */
+    .workflow-container {
+      background: #ffffff;
+      border: 1.5px solid #4a0e17;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .workflow-steps-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fcf9f2;
+    }
+
+    .workflow-step-card {
+      background: #ffffff;
+      border: 1px solid #d4af37;
+      border-radius: 6px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .step-number-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #4a0e17;
+      color: #f3e5ab;
+      font-weight: 800;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+      border: 1px solid #d4af37;
+      font-family: 'Cinzel', serif;
+    }
+
+    .step-icon-svg {
+      width: 28px;
+      height: 28px;
+      margin-bottom: 4px;
+      color: #4a0e17;
+    }
+
+    .step-title {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #4a0e17;
+      margin-bottom: 2px;
+      line-height: 1.2;
+      font-family: 'Cinzel', serif;
+    }
+
+    .step-desc {
+      font-size: 8px;
+      color: #4b5563;
+      line-height: 1.25;
+    }
+
+    /* References list */
+    .ref-list {
+      list-style-type: decimal;
+      padding-left: 14px;
+      font-size: 8.8px;
+      line-height: 1.35;
+      color: #374151;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .ref-list li {
+      text-align: justify;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .poster-canvas {
+        border: none;
+        box-shadow: none;
+        width: 100%;
+        min-height: auto;
+        padding: 0;
+      }
+      @page {
+        size: A1 portrait;
+        margin: 6mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Action Toolbar -->
+  <div class="toolbar">
+    <span>🎓 G.L. Bajaj Project Presentation Poster — <strong>ResumeGrind</strong></span>
+    <button onclick="window.print()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <!-- Main Poster Canvas -->
+  <div class="poster-canvas">
+    <div class="poster-inner-border">
+
+      <!-- =========================================================================
+           POSTER HEADER
+           ========================================================================= -->
+      <header class="poster-header">
+        
+        <!-- Left Logo Badge -->
+        <div class="header-logo-left">
+          <div class="logo-badge">
+            <div class="logo-icon">GL</div>
+            <div style="text-align: left;">
+              <div class="logo-text-main">GL BAJAJ</div>
+              <div class="logo-text-sub">Inst. of Technology & Management</div>
+            </div>
+          </div>
+          <div class="logo-tagline">FIND YOUR SPARK</div>
+          <div class="logo-affiliation">Approved by AICTE & Affiliated to AKTU</div>
+        </div>
+
+        <!-- Center University & Presentation Details -->
+        <div class="header-titles">
+          <h1 class="college-name">G. L. Bajaj Institute of Technology & Management</h1>
+          <h2 class="dept-name">Department of Computer Science & Engineering - Artificial Intelligence</h2>
+          <div class="presentation-title">PROJECT POSTER PRESENTATION</div>
+          <div class="session-tag">SESSION (2026-2027) BATCH – 2023</div>
+        </div>
+
+        <!-- Right Evaluation Badge -->
+        <div class="header-badge-right">
+          <div class="eval-title">Final Year Project</div>
+          <div class="eval-sub">Capstone Evaluation</div>
+          <div class="eval-pill">AI & Systems Track</div>
+        </div>
+
+      </header>
+
+      <!-- =========================================================================
+           TOP ROW: Group Meta + Abstract + Introduction
+           ========================================================================= -->
+      <section class="poster-grid-top">
+
+        <!-- Column 1: Group Meta Box -->
+        <div class="card group-info-card">
+          <div class="group-id-banner">GROUP ID: 40</div>
+          <div class="group-info-content">
+            
+            <div class="meta-group">
+              <div class="meta-label">Project Title:</div>
+              <div class="meta-value-title">ResumeGrind: AI-Powered Adaptive Technical Interviewer & Resume Cross-Examination Engine</div>
+            </div>
+
+            <div class="meta-group">
+              <div class="meta-label">Team Members:</div>
+              <div class="team-member-item">
+                <span>1.</span>
+                <strong>Rahul Upadhyay</strong>
+                <span class="roll">(2301921520142)</span>
+              </div>
+              <div class="team-member-item">
+                <span>2.</span>
+                <strong>Pranjal Pandey</strong>
+                <span class="roll">(2301921520132)</span>
+              </div>
+            </div>
+
+            <div class="meta-group">
+              <div class="meta-label">Supervisor:</div>
+              <div class="supervisor-info">Mr. Mohit Kumar</div>
+              <div class="supervisor-desig">(Assistant Professor, Dept. of CSE-AI)</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Column 2: Abstract -->
+        <div class="card">
+          <div class="card-header">Abstract</div>
+          <div class="card-body">
+            <ul class="bullet-list">
+              <li><strong>Addresses Technical Hiring Inefficiencies:</strong> Solves widespread resume exaggeration, proxy interview cheating, and generic, un-grounded mock interview simulators.</li>
+              <li><strong>Autonomous Multi-Tier Cross-Examination:</strong> Deep-parses candidate resumes and inspects live GitHub repositories (AST parsing, commit history) to generate targeted technical inquiries.</li>
+              <li><strong>Live LeetCode-Style DSA Coding Sandbox:</strong> Integrates a multi-language (Python, Java, C++, JS) browser-based execution sandbox with automated test case evaluation.</li>
+              <li><strong>Acoustic Speech & Delivery Analytics:</strong> Measures words per minute (WPM), speech pacing, and filler word frequency to coach holistic verbal delivery.</li>
+              <li><strong>Zero Question Repetition & Command Control:</strong> Employs memory-tracked historical deduplication across 15 senior engineering tracks and cockpit command directives.</li>
+              <li><strong>Google XYZ Resume Enhancement:</strong> Delivers post-session feedback with quantifiable metric refactoring suggestions for candidate resumes.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Column 3: Introduction -->
+        <div class="card">
+          <div class="card-header">Introduction</div>
+          <div class="card-body">
+            <ul class="bullet-list">
+              <li><strong>The Software Hiring Crisis:</strong> Over 78% of technology applicants inflate resume claims, while conventional interview loops struggle to assess genuine code comprehension under pressure.</li>
+              <li><strong>Static vs. Dynamic Evaluation:</strong> Standard mock interview portals rely on canned question banks, failing to probe failure modes, concurrency, or trade-offs in candidate projects.</li>
+              <li><strong>Ground-Truth Verification:</strong> ResumeGrind bridges this gap by automatically fetching candidate GitHub repositories and cross-referencing implementation details against oral answers.</li>
+              <li><strong>Multilingual Accessibility:</strong> Delivers technical evaluations in both English and Hindi, democratizing tier-1 tech interview preparation across diverse demographics.</li>
+              <li><strong>Adaptive Interviewer Personas:</strong> Dynamically modulates tone between *Friendly Mentor*, *Strict Bar-Raiser*, *Curious Architect*, and *Sarcastic Senior* to replicate authentic engineering pressures.</li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =========================================================================
+           MIDDLE ROW: Methodology (Left 2 cols) + Objectives & Motivation (Right col)
+           ========================================================================= -->
+      <section class="poster-grid-middle">
+
+        <!-- Methodology Architecture Box -->
+        <div class="methodology-box">
+          <div class="card-header">System Architecture & Methodology</div>
+          <div class="methodology-diagram">
+            
+            <!-- 4 Core Pipeline Stages -->
+            <div class="pipeline-row">
+              
+              <div class="stage-card">
+                <div class="stage-header">1. Resume & GitHub Ingest</div>
+                <div class="stage-content">
+                  <ul>
+                    <li>PDF text extraction & OCR</li>
+                    <li>GitHub REST / GraphQL AST</li>
+                    <li>Commit logs & key dependencies</li>
+                    <li>Claim extraction & tokenization</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">2. Context & RAG Engine</div>
+                <div class="stage-content">
+                  <ul>
+                    <li>Dense semantic embeddings</li>
+                    <li>Project tech stack mapping</li>
+                    <li>Ground-truth verification</li>
+                    <li>Failure mode question synthesis</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">3. Live Cockpit & Personas</div>
+                <div class="stage-content">
+                  <ul>
+                    <li>WebSpeech API voice stream</li>
+                    <li>Audio level VU metering</li>
+                    <li>Cockpit COMMAND directives</li>
+                    <li>Gemini 3.5 Flash-Lite LLM</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">4. LeetCode Code Sandbox</div>
+                <div class="stage-content">
+                  <ul>
+                    <li>Isolated sandbox compiler</li>
+                    <li>Python, Java, C++, JavaScript</li>
+                    <li>Automated unit test assertion</li>
+                    <li>O(N) vs O(N²) algorithmic triage</li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Full-Stack Technical Stack Details -->
+            <div class="system-tech-strip">
+              <div class="tech-tier">
+                <div class="tech-tier-title">Frontend Tier (React + Vite)</div>
+                <div class="tech-tier-desc">TailwindCSS, Monaco/CodeMirror Sandbox, WebSpeech SpeechRecognition & Synthesis, Framer Motion animations.</div>
+              </div>
+              <div class="tech-tier">
+                <div class="tech-tier-title">Backend Services (FastAPI)</div>
+                <div class="tech-tier-desc">Async Python 3.11, PyPDF2/pdfminer, GitHub Octokit AST analysis, Session Store with DynamoDB & in-memory fallback.</div>
+              </div>
+              <div class="tech-tier">
+                <div class="tech-tier-title">AI & Sandbox Orchestration</div>
+                <div class="tech-tier-desc">Gemini 3.5 Flash-Lite, Local Ollama fine-tuned Llama 3, Docker sandboxed subprocess runtime, Speech WPM analyzer.</div>
+              </div>
+            </div>
+
+            <!-- Security & Compliance Layer -->
+            <div class="security-compliance-strip">
+              <span>Security & Reliability Controls:</span>
+              <span class="compliance-pill">Sandboxed Subprocess Execution</span>
+              <span class="compliance-pill">Zero Long-Term Voice Retention</span>
+              <span class="compliance-pill">Deterministic Gibberish Guardrail</span>
+              <span class="compliance-pill">AWS DynamoDB 24h TTL</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Objectives & Motivation -->
+        <div class="card">
+          <div class="card-header">Objectives & Motivation</div>
+          <div class="card-body">
+            <ul class="bullet-list">
+              <li><strong>Eliminate Resume Fraud:</strong> Verify candidate authorship by cross-examining actual architecture decisions, edge cases, and code repositories.</li>
+              <li><strong>Multi-Turn Adaptive Drilling:</strong> Probe beyond initial high-level claims by challenging concurrency (10k writes/sec), caching stampedes, and outage triage.</li>
+              <li><strong>Integrated Live Problem Solving:</strong> Smooth transition from verbal architectural discourse directly into LeetCode algorithm coding without context switching.</li>
+              <li><strong>Speech & Communication Coaching:</strong> Quantify acoustic vocal metrics (hesitations, filler words, speech rate) for confidence building.</li>
+              <li><strong>Motivation:</strong> Empower engineering students with rigorous, industry-grade interview preparation that mirrors top-tier MAANG and high-scale tech company evaluations.</li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =========================================================================
+           BOTTOM ROW: Experimentation + Workflow Diagram + Conclusion + References
+           ========================================================================= -->
+      <section class="poster-grid-bottom">
+
+        <!-- Column 1: Experimentation & Results -->
+        <div class="card">
+          <div class="card-header">Experimentation & Benchmark Results</div>
+          <div class="card-body">
+            <ul class="bullet-list" style="margin-bottom: 8px;">
+              <li><strong>Provider Latency:</strong> Gemini 3.5 Flash-Lite achieved <strong>1.82s</strong> response time, enabling fluid conversational dialogue compared to Local Ollama (8.14s).</li>
+              <li><strong>Question Uniqueness:</strong> <strong>100% unique</strong> follow-up questions across 15 technical domains with zero looping.</li>
+              <li><strong>Algorithmic Triage:</strong> Sandbox graded solutions in <strong>&lt; 140ms</strong> with instant time-complexity feedback.</li>
+            </ul>
+
+            <table class="metrics-table">
+              <thead>
+                <tr>
+                  <th>Evaluation Metric</th>
+                  <th>Gemini Flash</th>
+                  <th>Ollama Local</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Turn Response Latency</td>
+                  <td class="highlight">1.82 s</td>
+                  <td>8.14 s</td>
+                  <td>&lt; 2.5 s</td>
+                </tr>
+                <tr>
+                  <td>Question Deduplication</td>
+                  <td class="highlight">100.0%</td>
+                  <td>100.0%</td>
+                  <td>&gt; 98.0%</td>
+                </tr>
+                <tr>
+                  <td>DSA Compile & Run Time</td>
+                  <td class="highlight">138 ms</td>
+                  <td>142 ms</td>
+                  <td>&lt; 250 ms</td>
+                </tr>
+                <tr>
+                  <td>Gibberish Detection Recall</td>
+                  <td class="highlight">100.0%</td>
+                  <td>96.2%</td>
+                  <td>100.0%</td>
+                </tr>
+                <tr>
+                  <td>Speech Pacing Accuracy</td>
+                  <td class="highlight">95.8%</td>
+                  <td>95.8%</td>
+                  <td>&gt; 90.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Column 2: Conclusion -->
+        <div class="card">
+          <div class="card-header">Conclusion & Impact</div>
+          <div class="card-body">
+            <ul class="bullet-list">
+              <li><strong>Autonomous Technical Rigor:</strong> Successfully developed an end-to-end platform that automates rigorous technical screening with contextual integrity.</li>
+              <li><strong>Honest Skill Validation:</strong> Dissects project source code to verify real hands-on contributions, eliminating superficial buzzword inflation.</li>
+              <li><strong>Bimodal Interview Paradigm:</strong> Seamlessly blends high-level system design cross-examination with live LeetCode algorithmic implementation in one cohesive session.</li>
+              <li><strong>Actionable Feedback Loop:</strong> Generates post-interview diagnostic reports featuring Google XYZ resume improvements and tailored code refactorings.</li>
+              <li><strong>Scalable Deployment:</strong> Built on a serverless-ready architecture capable of handling concurrent student interview streams with zero performance degradation.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Column 3: References -->
+        <div class="card">
+          <div class="card-header">References</div>
+          <div class="card-body">
+            <ol class="ref-list">
+              <li>Vaswani, A., Shazeer, N., Parmar, N., et al. "Attention Is All You Need." <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, 2017.</li>
+              <li>Lewis, P., Perez, E., Piktus, A., et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." <em>NeurIPS</em>, 2020.</li>
+              <li>Chen, M., Tworek, J., Jun, H., et al. "Evaluating Large Language Models Trained on Code." <em>OpenAI Technical Report</em>, arXiv:2107.03374, 2021.</li>
+              <li>Bock, L. "Work Rules!: Insights from Inside Google That Will Transform How You Live and Lead." Twelve Books / <em>Google XYZ Framework</em>, 2015.</li>
+            </ol>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =========================================================================
+           FULL-WIDTH WORKFLOW PIPELINE (Bottom Section)
+           ========================================================================= -->
+      <div class="workflow-container">
+        <div class="card-header" style="font-size: 11.5px; padding: 4px;">End-to-End Interview Execution Workflow</div>
+        <div class="workflow-steps-row">
+          
+          <div class="workflow-step-card">
+            <div class="step-number-circle">1</div>
+            <svg class="step-icon-svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <div class="step-title">Resume & GitHub Ingest</div>
+            <div class="step-desc">Parses candidate PDF claims & GitHub AST repositories</div>
+          </div>
+
+          <div class="workflow-step-card">
+            <div class="step-number-circle">2</div>
+            <svg class="step-icon-svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <div class="step-title">Claim & Tech Mapping</div>
+            <div class="step-desc">Identifies architecture claims, concurrency & database tools</div>
+          </div>
+
+          <div class="workflow-step-card">
+            <div class="step-number-circle">3</div>
+            <svg class="step-icon-svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <div class="step-title">Multi-Turn Cross-Exam</div>
+            <div class="step-desc">Dynamic persona questioning targeting bottlenecks & trade-offs</div>
+          </div>
+
+          <div class="workflow-step-card">
+            <div class="step-number-circle">4</div>
+            <svg class="step-icon-svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <div class="step-title">Live LeetCode Sandbox</div>
+            <div class="step-desc">In-browser IDE execution with O(N) automated test runner</div>
+          </div>
+
+          <div class="workflow-step-card">
+            <div class="step-number-circle">5</div>
+            <svg class="step-icon-svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="step-title">Analytics & Feedback</div>
+            <div class="step-desc">Speech delivery metrics & Google XYZ resume improvements</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
