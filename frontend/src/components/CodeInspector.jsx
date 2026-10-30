@@ -48,51 +48,6 @@ public:
 };
 `
 };
-`,
-  java: `// LeetCode 1: Two Sum
-// Constraints: 2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9
-
-import java.util.*;
-
-class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        // Implement your O(N) logic here:
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int complement = target - nums[i];
-            if (map.containsKey(complement)) {
-                return new int[]{map.get(complement), i};
-            }
-            map.put(nums[i], i);
-        }
-        return new int[0];
-    }
-}
-`,
-  cpp: `// LeetCode 1: Two Sum
-// Constraints: 2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9
-
-#include <vector>
-#include <unordered_map>
-using namespace std;
-
-class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        // Implement your O(N) logic here:
-        unordered_map<int, int> seen;
-        for (int i = 0; i < nums.size(); i++) {
-            int diff = target - nums[i];
-            if (seen.find(diff) != seen.end()) {
-                return {seen[diff], i};
-            }
-            seen[nums[i]] = i;
-        }
-        return {};
-    }
-};
-`
-};
 
 export default function CodeInspector({ context, onSubmitCode, isSubmittingParent = false }) {
   const [copied, setCopied] = useState(false);
