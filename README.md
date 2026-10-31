@@ -20,7 +20,8 @@
 8. [API Endpoints Reference](#-api-endpoints-reference)
 9. [Fine-Tuning & Local Ollama Setup](#-fine-tuning--local-ollama-setup)
 10. [Project Directory Layout](#-project-directory-layout)
-11. [License](#-license)
+11. [Pro Tips for Success](#-pro-tips-for-success)
+12. [License](#-license)
 
 ---
 
@@ -489,6 +490,35 @@ ResumeGrind/
 ├── README.md                          # Full system documentation
 └── .gitignore                         # Repository clean filters
 ```
+
+---
+
+## 💡 Pro Tips for Success
+
+To get the most out of your interview preparation with **ResumeGrind**, keep these expert tips in mind:
+
+### 1. 🎙️ Interview Cockpit & Conversation Strategy
+- **Use Cockpit Directives:** You can steer the interview anytime! Type or say `COMMAND: DSA` or click the **`[💻 Switch to DSA]`** pill to jump straight to LeetCode mode. Use `COMMAND: System Design` to test distributed systems, or `COMMAND: Next Question` to gracefully advance topics.
+- **Defend Real Architecture Decisions:** The interviewer inspects your actual GitHub code and resume. Be prepared to explain *why* you chose specific databases, how you handled race conditions, and how your system behaves under 10,000 concurrent writes/sec.
+- **Avoid Sycophancy Traps:** Do not give superficial 2-word answers (e.g., *"Very rhythmi Gandhi"*). ResumeGrind's anti-gibberish guardrails strictly penalize low-effort responses (Score: 2/10) with an aggressive Bar-Raiser reprimand.
+- **Leverage "Take a Hint":** If you get stuck on a difficult system design question, click **"Take a Hint"** on the right panel. It will generate a tailored hint grounded in the actual projects listed on your resume.
+
+### 2. 💻 Code Sandbox & Algorithm Assessment
+- **Write Pure Function Logic:** No input/output parsing boilerplate (`Scanner`, `cin`, `sys.stdin`) is needed. Simply implement the function stub (e.g., `def twoSum(self, nums, target)`), exactly like real LeetCode and FAANG technical screens.
+- **Strive for Optimal Time Complexity:** Brute-force $O(N^2)$ solutions will pass basic unit tests but get penalized with lower scores ($6/10$). Implement optimal single-pass $O(N)$ solutions using Hash Maps or Two Pointers to earn top ratings ($9-10/10$).
+- **Test Before Submitting:** Always click **"▶ Run Code"** first to execute against the sandbox unit test suite. Once all test cases pass, click **"Submit"** to send your solution directly to the AI interviewer for verbal code review and space/time complexity cross-examination.
+
+### 3. 🗣️ Speech Delivery & Acoustic Coaching
+- **Pacing Target (120–150 WPM):** Maintain an optimal conversational speaking speed. The built-in speech analyzer flags speech under 110 WPM as *Hesitant* and over 165 WPM as *Fast*.
+- **Reduce Filler Words:** Consciously minimize words like *"um"*, *"like"*, *"basically"*, and *"actually"*. Your post-interview diagnostic report highlights exact filler frequencies and counts.
+- **Apply the Google XYZ Framework:** Structure all project experience using Google's standard impact formula:  
+  $$\text{Accomplished [X] as measured by [Y] by doing [Z]}$$  
+  *(e.g., "Architected a distributed async task queue with Redis and Kafka [Z], cutting p99 latency from 450ms to 48ms [Y] under 15k RPM [X].")*
+
+### 4. ⚡ Performance & Workflow
+- **Use Gemini 3.5 Flash-Lite for Live Interviews:** For ultra-fast ~1.8s conversational turns and smooth voice audio, choose Gemini in the setup screen.
+- **Use Local Ollama for Offline Practice:** When practicing offline or preserving local privacy, launch `run_ollama.bat` to run the fine-tuned LLaMA-3 model completely on your local machine.
+- **One-Click Startup:** Simply double-click `start_project.bat` in the root folder to automatically boot both the FastAPI backend and React frontend together!
 
 ---
 
